@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Tests.Util;
@@ -417,6 +418,41 @@ namespace Tests
             result.StatusCode.Should().Be(HttpStatusCode.OK);
 
             handler.LastRequest.Should().Contain(new KeyValuePair<string, string>("additionalParameter", "42"));
+        }
+
+        [Fact]
+        public async Task ActiveToken_IntrospectionSuccess_UpdateOptions_ShouldChangeCacheBehavior()
+        {
+            var handler = new IntrospectionEndpointHandler(IntrospectionEndpointHandler.Behavior.Active, TimeSpan.FromHours(1));
+            
+            handler.AdditionalValues.Add("cache-duration", 100);
+
+            var server = PipelineFactory.CreateServer(o =>
+            {
+                _options(o);
+                
+                o.EnableCaching = false;
+
+                o.Events.OnIntrospectionSuccess = context =>
+                {
+                    var cacheDuration = context.Response.Claims.FirstOrDefault(c => c.Type == "cache-duration")?.Value;
+                    
+                    if(!string.IsNullOrEmpty(cacheDuration))
+                    {
+                        context.Options.EnableCaching = true;
+                        context.Options.CacheDuration = TimeSpan.FromSeconds(int.Parse(cacheDuration));
+                    }
+                    return Task.CompletedTask;
+                };
+            }, handler, true);
+            
+            var client = server.CreateClient();
+            client.SetBearerToken("sometoken");
+
+            var result = await client.GetAsync("http://test");
+            result.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            AssertCacheItemExists(server, string.Empty, "sometoken");
         }
 
         private void AssertCacheItemExists(TestServer testServer, string cacheKeyPrefix, string token)

@@ -123,6 +123,13 @@ namespace IdentityModel.AspNetCore.OAuth2Introspection
                     return await ReportNonSuccessAndReturn("Error returned from introspection endpoint: " + response.Error, Context, Scheme, Events, Options);
                 }
 
+                var context = new IntrospectionSuccessContext(Context, Scheme, Options)
+                {
+                    Response = response
+                };
+                
+                await Events.IntrospectionSuccess(context); 
+
                 if (response.IsActive)
                 {
                     if (Options.EnableCaching)

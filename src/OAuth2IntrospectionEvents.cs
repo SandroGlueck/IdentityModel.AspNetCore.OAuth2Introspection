@@ -30,6 +30,11 @@ namespace IdentityModel.AspNetCore.OAuth2Introspection
         /// Invoked when sending token introspection request.
         /// </summary>
         public Func<SendingRequestContext, Task> OnSendingRequest { get; set; } = context => Task.CompletedTask;
+        
+        /// <summary>
+        /// Invoked when token introspection request is successful.
+        /// </summary>
+        public Func<IntrospectionSuccessContext, Task> OnIntrospectionSuccess { get; set; } = context => Task.CompletedTask;
 
         /// <summary>
         /// Invoked if exceptions are thrown during request processing. The exceptions will be re-thrown after this event unless suppressed.
@@ -50,5 +55,10 @@ namespace IdentityModel.AspNetCore.OAuth2Introspection
         /// Invoked when sending token introspection request.
         /// </summary>
         public virtual Task SendingRequest(SendingRequestContext context) => OnSendingRequest(context);
+        
+        /// <summary>
+        /// Invoked when token introspection request is successful.
+        /// </summary>
+        public virtual Task IntrospectionSuccess(IntrospectionSuccessContext context) => OnIntrospectionSuccess(context);
     }
 }
